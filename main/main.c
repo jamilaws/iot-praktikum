@@ -14,6 +14,7 @@
 #include "sntp.h"
 #include "wifi.h"
 #include "esp_sleep.h"
+#include "esp_mac.h"
 
 
 int count = 0;
@@ -28,10 +29,18 @@ void app_main() {
   ESP_LOGI("progress", "[APP] Free memory: %d bytes", esp_get_free_heap_size());
   ESP_LOGI("progress", "[APP] IDF version: %s", esp_get_idf_version());
 
-  esp_log_level_set("*", ESP_LOG_ERROR);
+  esp_log_level_set("*", ESP_LOG_INFO);
   esp_log_level_set("mqtt", ESP_LOG_INFO);
   esp_log_level_set("progress", ESP_LOG_INFO);
   esp_log_level_set("gauge", ESP_LOG_INFO);
+
+  // get current MAC address and log it
+  uint8_t current_mac[6];
+  esp_read_mac(current_mac, ESP_MAC_WIFI_STA);
+  ESP_LOGI("progress", "MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
+             current_mac[0], current_mac[1], current_mac[2],current_mac[3], current_mac[4], current_mac[5]);
+
+             // MAC adress for bathroom: ec:62:60:bc:e8:b4
 
   getRSOC();
   esp_err_t ret = nvs_flash_init();

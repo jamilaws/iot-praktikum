@@ -105,7 +105,15 @@ void sendPIReventToMQTT(void) {
   char msg[150];
   time(&now);
 
-  int size = snprintf(msg, sizeof(msg), "{\"sensors\":[{\"name\":\"PIR\",\"values\":[{\"timestamp\":%llu, \"roomID\":\"corridor\"}]}]}", now * 1000);
+  const char* room_id;
+
+  if (DEVICE_ID == "2") {
+    room_id = "corridor";
+  } else if (DEVICE_ID == "3") {
+    room_id = "bathroom";
+  }
+
+  int size = snprintf(msg, sizeof(msg), "{\"sensors\":[{\"name\":\"PIR\",\"values\":[{\"timestamp\":%llu, \"roomID\":\"%s\"}]}]}", now * 1000, room_id);
   ESP_LOGI("mqtt", "Sent <%s> to topic %s", msg, DEVICE_TOPIC);
   auto err = esp_mqtt_client_publish(mqtt_client, DEVICE_TOPIC, msg, size, 1, 0);
   if (err == -1) {
