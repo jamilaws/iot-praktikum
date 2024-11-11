@@ -138,3 +138,19 @@ void sendBatteryStatusToMQTT(void) {
     return ESP_FAIL;
   }
 }
+
+void sendMagneticSwitchEventToMQTT(void) {
+  time_t now = 0;
+
+  char msg[150];
+  time(&now);
+
+  int size = snprintf(msg, sizeof(msg), "{\"sensors\":[{\"name\":\"magneticSwitch\",\"values\":[{\"timestamp\":%llu, \"roomID\":\"door\"}]}]}", now * 1000);
+  ESP_LOGI("mqtt", "Sent <%s> to topic %s", msg, DEVICE_TOPIC);
+  auto err = esp_mqtt_client_publish(mqtt_client, DEVICE_TOPIC, msg, size, 1, 0);
+  if (err == -1) {
+    printf("Error while publishing to mqtt\n");
+    ESP_LOGI("functions", "SendToMqttFunction terminated");
+    return ESP_FAIL;
+  }
+}
