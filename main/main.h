@@ -30,5 +30,6 @@
 
 #define PIR_PIN 27 
 #define SWITCH_PIN 32
-#define PIR_PIN2 23
+#define PIR_PIN2 32
 #define PIR_PIN_MASK ((1ULL<<PIR_PIN) | (1ULL<<PIR_PIN2))
+
