@@ -202,44 +202,54 @@ void sendAllPIReventsToMQTT(void) {
     // Iterate through the event buffer and append each event to the "values" array
     for (int i = 0; i < s_count; i++) {
       if(event_buffer[i].sensor_id == 0) {
+        ESP_LOGI("mqtt", "Event %d: room", i);
         char event[100];
         snprintf(event, sizeof(event),
                  "{\"timestamp\":%llu, \"roomID\":\"%s\"}%s",
                  event_buffer[i].timestamp * 1000,  // Convert to milliseconds
                  room_id, 
-                 (i == s_count - 1) ? "" : ",");  // Add a comma between events except for the last
+                 (i == s_count - 1
+                  || ({ int found = 0; for (int j = i + 1; j < s_count; j++) { if (event_buffer[j].sensor_id == 0) { found = 1; break; } } found; })
+                 ) ? "," : "");  // Add a comma between events except for the last
 
         strncat(values, event, sizeof(values) - strlen(values) - 1);
         addedPIR = 1;
       } else {
-        char event[100];
-        snprintf(event, sizeof(event),
+        ESP_LOGI("mqtt", "Event %d: kitchen", i);
+        char eventk[100];
+        snprintf(eventk, sizeof(eventk),
                  "{\"timestamp\":%llu, \"roomID\":\"%s\"}%s",
                  event_buffer[i].timestamp * 1000,  // Convert to milliseconds
                  room_id,
-                 (i == s_count - 1) ? "" : ",");  // Add a comma between events except for the last
+                  (i == s_count - 1
+                  || ({ int found = 0; for (int j = i + 1; j < s_count; j++) { if (event_buffer[j].sensor_id == 1) { found = 1; break; } } found; })
+                 ) ? "," : "");  // Add a comma between events except for the last
 
-        strncat(valuesKitchen, event, sizeof(valuesKitchen) - strlen(valuesKitchen) - 1);
+        strncat(valuesKitchen, eventk, sizeof(valuesKitchen) - strlen(valuesKitchen) - 1);
         addedKitchen = 1;
       }
     }
 
-    // Complete the JSON message
-    strncat(msg, values, sizeof(msg) - strlen(msg) - 1);
-    strncat(msg, "]}]}", sizeof(msg) - strlen(msg) - 1);
-
-    ESP_LOGI("mqtt", "Sent <%s> to topic %s", msg, DEVICE_TOPIC);
-
     // Publish the JSON message to MQTT
-    if(addedPIR) {
+    if(addedPIR == 1) {
+
+      // Complete the JSON message
+      strncat(msg, values, sizeof(msg) - strlen(msg) - 1);
+      strncat(msg, "]}]}", sizeof(msg) - strlen(msg) - 1);
       int err = esp_mqtt_client_publish(mqtt_client, DEVICE_TOPIC, msg, 0, 1, 0);
-      if (err == -1) {
+      ESP_LOGI("mqtt", "Sent <%s> to topic %s", msg, DEVICE_TOPIC);
+      if (err <0) {
         ESP_LOGE("mqtt", "Error while publishing PIR events to MQTT.");
         return;
       }
     }
-    if(addedKitchen){
+    if(addedKitchen == 1){
+
+      // Complete the JSON message
+      strncat(msgKitchen, valuesKitchen, sizeof(msg) - strlen(msgKitchen) - 1);
+      strncat(msgKitchen, "]}]}", sizeof(msg) - strlen(msgKitchen) - 1);
       int err = esp_mqtt_client_publish(mqtt_client, DEVICE_TOPIC, msgKitchen, 0, 1, 0);
+      ESP_LOGI("mqtt", "Sent <%s> to topic %s", msgKitchen, DEVICE_TOPIC);
       if (err < 0) {
         ESP_LOGE("mqtt", "Error while publishing kitchen events to MQTT.");
         return;

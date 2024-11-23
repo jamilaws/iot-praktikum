@@ -50,7 +50,7 @@ RTC_IRAM_ATTR uint32_t max_count = 5;
 RTC_IRAM_ATTR uint32_t s_count = 0;
 
 // couts wakeups, stored in RTC memory
-RTC_IRAM_ATTR uint8_t wake_count = 0;
+RTC_IRAM_ATTR uint32_t wake_count = 0;
 
 // wakeup_cause stored in RTC memory
 static uint32_t wakeup_cause; // 0 = undefined, 1 = ext0, 2 = ext1, 3 = timer
@@ -105,7 +105,7 @@ void wake_stub_example(void)
         ESP_RTC_LOGI("Wake stub: stored event at position %u", s_count);
         if (wakeup_cause == 2) {
           ESP_RTC_LOGI("Wake stub: ext1 wakeup, check for PIR2");
-          uint64_t status = REG_READ(RTC_CNTL_EXT_WAKEUP1_STATUS_REG);
+          uint32_t status = REG_READ(RTC_CNTL_EXT_WAKEUP1_STATUS_REG);
 
   
           if (status & BIT(9)) {

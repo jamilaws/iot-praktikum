@@ -110,8 +110,10 @@ void app_main() {
     
     ESP_ERROR_CHECK(gpio_set_direction(PIR_PIN, GPIO_MODE_INPUT));
     ESP_ERROR_CHECK(rtc_gpio_pulldown_en(PIR_PIN));
+    ESP_ERROR_CHECK(rtc_gpio_pullup_dis(PIR_PIN));
     ESP_ERROR_CHECK(gpio_set_direction(PIR_PIN2, GPIO_MODE_INPUT));
     ESP_ERROR_CHECK(rtc_gpio_pulldown_en(PIR_PIN2));
+    ESP_ERROR_CHECK(rtc_gpio_pullup_dis(PIR_PIN2));
 
     // Schleife zum Warten, bis beide Pins auf LOW sind
     while (gpio_get_level(PIR_PIN) == 1 || gpio_get_level(PIR_PIN2) == 1) {
