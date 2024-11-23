@@ -49,8 +49,11 @@ RTC_IRAM_ATTR uint32_t max_count = 5;
 // counter value, stored in RTC memory
 RTC_IRAM_ATTR uint32_t s_count = 0;
 
+// couts wakeups, stored in RTC memory
+RTC_IRAM_ATTR uint8_t wake_count = 0;
+
 // wakeup_cause stored in RTC memory
-static uint32_t wakeup_cause;
+static uint32_t wakeup_cause; // 0 = undefined, 1 = ext0, 2 = ext1, 3 = timer
 
 // wakeup_time from CPU start to wake stub
 static uint32_t wakeup_time;
@@ -76,52 +79,62 @@ RTC_IRAM_ATTR uint64_t my_rtc_time_get_us(void) {
   return now1;
 }
 
-
-// wake up stub function stored in RTC memory
 void wake_stub_example(void)
 {
-    // Get wakeup time.
+    REG_WRITE(TIMG_WDTFEED_REG(0), 1);
     wakeup_time = esp_cpu_get_cycle_count() / esp_rom_get_cpu_ticks_per_us();
-    // Get wakeup cause.
     wakeup_cause = esp_wake_stub_get_wakeup_cause();
-    // save timestamp in array
+    ESP_RTC_LOGI("wake stub: wakeup cause is %d", wakeup_cause);
     uint32_t timestamp = my_rtc_time_get_us();
-    // add to the event buffer
-    event_buffer[s_count].timestamp = timestamp;
-    event_buffer[s_count].sensor_id = 0;
-    if (wakeup_cause == ESP_SLEEP_WAKEUP_EXT1) {
-        uint64_t wakeup_mask = esp_sleep_get_ext1_wakeup_status();
-        if ((wakeup_mask & (1ULL << PIR_PIN2)) != 0) {
-            event_buffer[s_count].sensor_id = 1;
-        }
+
+    uint8_t wake_from_timer = 0;
+    if(wakeup_cause != 1 && wakeup_cause != 2) {
+      ESP_RTC_LOGI("wake stub: wakeup from timer every 10 minutes");
+      if(s_count > 0 && timestamp - event_buffer[0].timestamp > 60*1000000) {
+        ESP_RTC_LOGI("wake stub: At least one event has been stored for over 1h, waking up");
+        wake_from_timer = 1;
+      }
     }
-    // Increment the counter.
-    ESP_RTC_LOGI("Stub has detected event number %d", s_count);
-    s_count++;
-    // Print the counter value and wakeup cause.
+
+    if(wakeup_cause == 1 || wakeup_cause == 2) {
+      // check if the last event is older than 5 minutes
+      if (s_count == 0 || timestamp - event_buffer[s_count-1].timestamp > 5*60*1000000) {
+        // add to the event buffer
+        event_buffer[s_count].timestamp = timestamp;
+        event_buffer[s_count].sensor_id = 0;
+        ESP_RTC_LOGI("Wake stub: stored event at position %u", s_count);
+        if (wakeup_cause == 2) {
+          ESP_RTC_LOGI("Wake stub: ext1 wakeup, check for PIR2");
+          uint64_t wakeup_mask = esp_sleep_get_ext1_wakeup_status();
+          ESP_RTC_LOGI("nicht gefailt lol");
+          if ((wakeup_mask & (1ULL << PIR_PIN2)) != 0) {
+            ESP_RTC_LOGI("Wake stub: PIR2 detected");
+            event_buffer[s_count].sensor_id = 1;
+            ESP_RTC_LOGI("Updated sensor id to 1");
+          }
+        }
+        ESP_RTC_LOGI("Stub has detected event number %u", s_count);
+        s_count++;
+        ESP_RTC_LOGI("next event will be %u ", s_count);
+      } else {
+        ESP_RTC_LOGI("Wake stub: last event is too recent, discarding event");
+      }
+    }
+
+    
     ESP_RTC_LOGI("wake stub: wakeup count is %d, wakeup cause is %d, wakeup cost %ld us, RTC clock: %llu", s_count, wakeup_cause, wakeup_time,timestamp/1000000);
 
-    if (s_count >= max_count) {
-        // Reset s_count
-        //s_count = 0;
-
-        // Set the default wake stub.
-        // There is a default version of this function provided in esp-idf.
+    if (s_count >= max_count || wake_from_timer) {
+        ESP_RTC_LOGI("wake stub: event buffer full, waking up");
         esp_default_wake_deep_sleep();
-
-        // Return from the wake stub function to continue
-        // booting the firmware.
         return;
     }
-    // s_count is < s_max_count, go back to deep sleep.
+    // go back to deep sleep.
 
     // Set wakeup time in stub, if need to check GPIOs or read some sensor periodically in the stub.
-    esp_wake_stub_set_wakeup_time(5*1000000);
+    esp_wake_stub_set_wakeup_time(10*1000000);
 
-    // Print status.
     ESP_RTC_LOGI("wake stub: going to deep sleep");
-
-    // Set stub entry, then going to deep sleep again.
     esp_wake_stub_sleep(&wake_stub_example);
-    esp_deep_sleep_start();
+    //esp_deep_sleep_start();
 }

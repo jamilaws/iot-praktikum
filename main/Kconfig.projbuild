@@ -53,5 +53,12 @@ menu "Example Configuration"
         default "recipient.email@gmail.com"
         help
             Recipient's email
+
+    config WAKE_UP_TIME
+        int "Wake up interval in seconds"
+        default 10
+        range 1 60
+        help
+            Configurable wake up interval in seconds.
 			
 endmenu
