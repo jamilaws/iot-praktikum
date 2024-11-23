@@ -53,10 +53,12 @@ void app_main() {
 
   // set DEVICE ID, DEVICE KEY and DEVICE TOPIC based on MAC address
   if(memcmp(current_mac, BATHROOM_MAC, 6) == 0) {
+    ESP_LOGI("progress", "The connected device is a bathroom sensor");
     DEVICE_ID = "3";
     DEVICE_TOPIC = "1/3/data";
     DEVICE_KEY = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MzA0OTAwNzIsImlzcyI6ImlvdHBsYXRmb3JtIiwic3ViIjoiMS8zIn0.gtQ1iVRv20Pz-YQmVfnGYAEYadGtQkAINfb9NKBt3IqGn0Tf_6NM3Idlvh9r5zh3Q-DSun393Q1qmQ7nSbvsMsA32KLcUI4RtjiL6Tbgbkc6pFbgk4Pie0J95lyLKjOuINit_wAIH8qK_jGRBA24guGdqd7AVERJzhvrJurOe2GtNENuT47BvkgnftCQx1W5M5SRq8QhW8rgRQTr7XNmTLHA2t1wxuTqGlzOLmKpzOHdYnucJzUvwKpZxaBex3ywqy9ZlJO4rmkJ9A5RlwG4791394tb6W-W0J77xFTUVWJ93waE2ro2q8Oyx_DxGZTKWq59L_3rJ-OMRafQfch73U5J7QKANfkq9dGGMSWSRnJFOQ3Nd0hRrWGhpUZTJSDdZfvYyThWFzZy91C00dWmN1K9cQ_Ld77gjReHB6t8OAKB4nPh6hHNOTyXWp48CcqZhsYl4uJQkLd2eanCEukRUn1-uug36ZDYsU8kfO84cNqILtz056FnDFWIAMforAjKRYIqJo-RcNn2kYwQeZq29NVqn5sdd-56n0aSk9GKUiR_nVP5u32BTHx2qmMkj-mmjs5BpOBbWls4Z8DBWI6o8D52a1gsDr_KIAhzMDqp1wtILgUTY-fpK7p-zaiNiGXZ6Rvcmm1CExwlLZyD0jgo2kBjraOYDPdC6kA8r4ds7vQ";
   } else if(memcmp(current_mac, DOOR_MAC, 6) == 0) {
+    ESP_LOGI("progress", "The connected device is a door sensor");
     DEVICE_ID = "4";
     DEVICE_TOPIC = "1/4/data";
     DEVICE_KEY = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MzA2Mzg2MDQsImlzcyI6ImlvdHBsYXRmb3JtIiwic3ViIjoiMS80In0.O9Uc5fiw12V46WMUnoFhi5bP-9jAOZVV6sFbm37t9paCo1rpYOiYOMnA4rqfJVW6FOlD3aZs_xP5WHFjJ_K-pesORigaHgw9NqN1K9gGM78GJV-dbki_wsyma_JyhFBPhuAa3fnH_ppqir1ev6X3auJJP-NdMcbAcjskX17TGp7XN3_6jkgR1ms2_2e_8FGbhtb_2d7EZ4xswzpIomj5QweW64hlJ7ExxJjP5pPVovfRMP5i2TR-ISmQ33cYh_cuABFzR5gnebkE52_HQHedK1JFjjcRSTfR7RI22XfKrPxi9dN3vsgjX9Iqs0kMcfWPzgFCrUWbHBMoVNrqed8-O8MJHAmMW8H7zzOlyadZSh9edCC5VDrR-kIzsARarVBbzhnh4IzSyS7GM1rjtmglpMTDyfXSgKPzHzUPUp9oSiNnmFcH67a0KTRQPNmfNxGYbZOGpKaXFbEYQl4dVoMEvhUb8S1a6g0GUu03qROfZx_g4tD6IT6LBOqNgDVLmNwM3ivqgIKWMmy3qg-aHoPl4Jn1ZfKOYu-aP1t3LkdM8Fbpi2XbtUMzR2aD2lmNuEWm6Dp5iB96gfqG-j0HWynRyw3UzZnANIyzqrYrFoxzOM2Qngjh15jIMQpVx_G5eX4gRoTdpqw2blS1zbTRSinmu978Q0EJHaWJ6tQpfF_7U8M";
@@ -119,7 +121,7 @@ void app_main() {
     ESP_LOGI("progress", "Installing wakeup");
     // EXT1 Wakeup auf beide Pins setzen
     ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(PIR_PIN_MASK, ESP_EXT1_WAKEUP_ANY_HIGH));
-
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(10*1000000));
     ESP_LOGI("progress", "Going to sleep");
     esp_set_deep_sleep_wake_stub(&wake_stub_example);
     esp_deep_sleep_start();

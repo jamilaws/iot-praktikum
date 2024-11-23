@@ -91,25 +91,31 @@ void wake_stub_example(void)
     uint8_t wake_from_timer = 0;
     if(wakeup_cause != 1 && wakeup_cause != 2) {
       ESP_RTC_LOGI("wake stub: wakeup from timer every 10 minutes");
-      if(s_count > 0 && timestamp - event_buffer[0].timestamp > 60*1000000) {
+      if(s_count > 0 && timestamp - event_buffer[0].timestamp > 20*1000000) {
         ESP_RTC_LOGI("wake stub: At least one event has been stored for over 1h, waking up");
         wake_from_timer = 1;
       }
     }
 
     if(wakeup_cause == 1 || wakeup_cause == 2) {
-      // check if the last event is older than 5 minutes
-      if (s_count == 0 || timestamp - event_buffer[s_count-1].timestamp > 5*60*1000000) {
+      
         // add to the event buffer
         event_buffer[s_count].timestamp = timestamp;
         event_buffer[s_count].sensor_id = 0;
         ESP_RTC_LOGI("Wake stub: stored event at position %u", s_count);
         if (wakeup_cause == 2) {
           ESP_RTC_LOGI("Wake stub: ext1 wakeup, check for PIR2");
-          uint64_t wakeup_mask = esp_sleep_get_ext1_wakeup_status();
-          ESP_RTC_LOGI("nicht gefailt lol");
-          if ((wakeup_mask & (1ULL << PIR_PIN2)) != 0) {
-            ESP_RTC_LOGI("Wake stub: PIR2 detected");
+          uint64_t status = REG_READ(RTC_CNTL_EXT_WAKEUP1_STATUS_REG);
+
+  
+          if (status & BIT(9)) {
+            ESP_RTC_LOGI("Wakeup caused by GPIO32 (RTC GPIO9)");
+          }
+
+          ESP_RTC_LOGI("Wake stub: RTC wakeup status: %u", status);
+          // Prüfe GPIO32 (RTC GPIO9)
+          if (status & BIT(9)) {
+            ESP_RTC_LOGI("Wake stub: kitchen detected");
             event_buffer[s_count].sensor_id = 1;
             ESP_RTC_LOGI("Updated sensor id to 1");
           }
@@ -117,8 +123,13 @@ void wake_stub_example(void)
         ESP_RTC_LOGI("Stub has detected event number %u", s_count);
         s_count++;
         ESP_RTC_LOGI("next event will be %u ", s_count);
-      } else {
+  
+    // check if the last event is older than 5 minutes
+    if (s_count >= 2 
+     && event_buffer[s_count - 1].sensor_id == event_buffer[s_count - 2].sensor_id
+     && event_buffer[s_count - 1].timestamp - event_buffer[s_count - 2].timestamp < 5*60*1000000) {
         ESP_RTC_LOGI("Wake stub: last event is too recent, discarding event");
+        s_count--;
       }
     }
 
