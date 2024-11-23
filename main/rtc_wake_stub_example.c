@@ -82,6 +82,7 @@ RTC_IRAM_ATTR uint64_t my_rtc_time_get_us(void) {
 void wake_stub_example(void)
 {
     REG_WRITE(TIMG_WDTFEED_REG(0), 1);
+    
     wakeup_time = esp_cpu_get_cycle_count() / esp_rom_get_cpu_ticks_per_us();
     wakeup_cause = esp_wake_stub_get_wakeup_cause();
     ESP_RTC_LOGI("wake stub: wakeup cause is %d", wakeup_cause);
