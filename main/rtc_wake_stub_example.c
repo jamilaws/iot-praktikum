@@ -86,12 +86,15 @@ void wake_stub_example(void)
     wakeup_time = esp_cpu_get_cycle_count() / esp_rom_get_cpu_ticks_per_us();
     wakeup_cause = esp_wake_stub_get_wakeup_cause();
     ESP_RTC_LOGI("wake stub: wakeup cause is %d", wakeup_cause);
-    uint32_t timestamp = my_rtc_time_get_us();
+    uint64_t rtc_time_event = my_rtc_time_get_us();
+    // get time spent in deep sleep and add to rtc_time_event
+    uint64_t time_since_last_deep_sleep_from_main_in_us = rtc_time_event - rtc_deep_sleep_start_time;
+    uint64_t timestamp = real_deep_sleep_start_time + time_since_last_deep_sleep_from_main_in_us / 1000000;
 
     uint8_t wake_from_timer = 0;
     if(wakeup_cause != 1 && wakeup_cause != 2) {
       ESP_RTC_LOGI("wake stub: wakeup from timer every 10 minutes");
-      if(s_count > 0 && timestamp - event_buffer[0].timestamp > 20*1000000) {
+      if(s_count > 0 && timestamp - event_buffer[0].timestamp > 10*60) {
         ESP_RTC_LOGI("wake stub: At least one event has been stored for over 1h, waking up");
         wake_from_timer = 1;
       }
@@ -106,11 +109,6 @@ void wake_stub_example(void)
         if (wakeup_cause == 2) {
           ESP_RTC_LOGI("Wake stub: ext1 wakeup, check for PIR2");
           uint32_t status = REG_READ(RTC_CNTL_EXT_WAKEUP1_STATUS_REG);
-
-  
-          if (status & BIT(9)) {
-            ESP_RTC_LOGI("Wakeup caused by GPIO32 (RTC GPIO9)");
-          }
 
           ESP_RTC_LOGI("Wake stub: RTC wakeup status: %u", status);
           // Prüfe GPIO32 (RTC GPIO9)
@@ -127,7 +125,7 @@ void wake_stub_example(void)
     // check if the last event is older than 5 minutes
     if (s_count >= 2 
      && event_buffer[s_count - 1].sensor_id == event_buffer[s_count - 2].sensor_id
-     && event_buffer[s_count - 1].timestamp - event_buffer[s_count - 2].timestamp < 5*60*1000000) {
+     && event_buffer[s_count - 1].timestamp - event_buffer[s_count - 2].timestamp < 5*60) {
         ESP_RTC_LOGI("Wake stub: last event is too recent, discarding event");
         s_count--;
       }
@@ -144,9 +142,8 @@ void wake_stub_example(void)
     // go back to deep sleep.
 
     // Set wakeup time in stub, if need to check GPIOs or read some sensor periodically in the stub.
-    esp_wake_stub_set_wakeup_time(10*1000000);
+    esp_wake_stub_set_wakeup_time(10*60*1000000);
 
     ESP_RTC_LOGI("wake stub: going to deep sleep");
     esp_wake_stub_sleep(&wake_stub_example);
-    //esp_deep_sleep_start();
 }

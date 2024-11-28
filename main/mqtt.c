@@ -208,8 +208,7 @@ void sendAllPIReventsToMQTT(void) {
                  "{\"timestamp\":%llu, \"roomID\":\"%s\"}%s",
                  event_buffer[i].timestamp * 1000,  // Convert to milliseconds
                  room_id, 
-                 (i == s_count - 1
-                  || ({ int found = 0; for (int j = i + 1; j < s_count; j++) { if (event_buffer[j].sensor_id == 0) { found = 1; break; } } found; })
+                 (({ int found = 0; for (int j = i + 1; j < s_count; j++) { if (j < s_count && event_buffer[j].sensor_id == 0) { found = 1; break; } } found; })
                  ) ? "," : "");  // Add a comma between events except for the last
 
         strncat(values, event, sizeof(values) - strlen(values) - 1);
@@ -221,8 +220,7 @@ void sendAllPIReventsToMQTT(void) {
                  "{\"timestamp\":%llu, \"roomID\":\"%s\"}%s",
                  event_buffer[i].timestamp * 1000,  // Convert to milliseconds
                  room_id,
-                  (i == s_count - 1
-                  || ({ int found = 0; for (int j = i + 1; j < s_count; j++) { if (event_buffer[j].sensor_id == 1) { found = 1; break; } } found; })
+                  (({ int found = 0; for (int j = i + 1; j < s_count; j++) { if (j < s_count && event_buffer[j].sensor_id == 1) { found = 1; break; } } found; })
                  ) ? "," : "");  // Add a comma between events except for the last
 
         strncat(valuesKitchen, eventk, sizeof(valuesKitchen) - strlen(valuesKitchen) - 1);

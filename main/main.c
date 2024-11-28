@@ -19,6 +19,8 @@
 #include "rtc_wake_stub_example.h" 
 
 int count = 0;
+uint64_t rtc_deep_sleep_start_time = 0;
+uint64_t real_deep_sleep_start_time = 0;
 
 char* DEVICE_ID = "2";
 char* DEVICE_TOPIC = "1/2/data";
@@ -32,7 +34,7 @@ void IRAM_ATTR handlePIRevent(void *arg) {
 
 
 void app_main() {
-  //configPM();
+
   ESP_LOGI("progress", "[APP] Free memory: %d bytes", esp_get_free_heap_size());
   ESP_LOGI("progress", "[APP] IDF version: %s", esp_get_idf_version());
 
@@ -87,9 +89,11 @@ void app_main() {
   ESP_LOGI("progress", "Starting MQTT");
   start_mqtt();
 
+  ESP_LOGI("progress", "All components started");
+
   if(memcmp(current_mac, BATHROOM_MAC, 6) == 0 | memcmp(current_mac, CORRIDOR_MAC, 6) == 0) {
     // only send every 10th battery status to MQTT
-    ESP_LOGI("progress", "The wake up count is %d", count);
+    ESP_LOGI("progress", "The wake up count is %d", wake_count);
     if(wake_count >= 10) {
       ESP_LOGI("progress", "Sending battery status to MQTT");
       sendBatteryStatusToMQTT();
@@ -100,13 +104,14 @@ void app_main() {
     }
   }
 
+
+
+
   // if mac address is for corridor/bathroom, send PIR event; if mac address is for door, send magnetic switch event
   if( memcmp(current_mac, CORRIDOR_MAC, 6) == 0) {
 
     ESP_LOGI("progress", "Sending PIR events to MQTT");
     sendAllPIReventsToMQTT();
-
-    ESP_LOGI("progress", "The connected device is a PIR sensor");
     
     ESP_ERROR_CHECK(gpio_set_direction(PIR_PIN, GPIO_MODE_INPUT));
     ESP_ERROR_CHECK(rtc_gpio_pulldown_en(PIR_PIN));
@@ -126,7 +131,12 @@ void app_main() {
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(10*1000000));
     ESP_LOGI("progress", "Going to sleep");
     esp_set_deep_sleep_wake_stub(&wake_stub_example);
+    real_deep_sleep_start_time = time(NULL);
+    rtc_deep_sleep_start_time = my_rtc_time_get_us();
     esp_deep_sleep_start();
+
+
+
 
   // if mac address is for bathroom, send PIR event
   } else if (memcmp(current_mac, BATHROOM_MAC, 6) == 0) {
@@ -152,7 +162,12 @@ void app_main() {
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(10*1000000));
     ESP_LOGI("progress", "Going to sleep");
     esp_set_deep_sleep_wake_stub(&wake_stub_example);
+    real_deep_sleep_start_time = time(NULL);
+    rtc_deep_sleep_start_time = my_rtc_time_get_us();
     esp_deep_sleep_start();
+
+
+
 
   } else if(memcmp(current_mac, DOOR_MAC, 6) == 0) {
 
@@ -180,13 +195,3 @@ void app_main() {
   }
 
 }
-
-//void configPM() {
-//  ESP_LOGI("progress", "Configuring LIGHT SLEEP");
-//  esp_pm_config_esp32_t pm_config = {
-//    .max_freq_mhz = 160,
-//    .min_freq_mhz = 160,
-//    .light_sleep_enable = true
-//  };
-//  ESP_ERROR_CHECK(esp_pm_configure(&pm_config));
-//}
